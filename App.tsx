@@ -12,8 +12,12 @@ import { MarketplaceView } from './components/MarketplaceView';
 import { AppView } from './types.ts';
 import { Footer } from './components/Footer';
 import { InscriptionView } from './components/InscriptionView';
+import { AdminDashboardView } from './components/AdminDashboardView';
+import { UserDashboard } from './components/UserDashboard'; // Nouveau Import
+import { LoginPortal } from './components/LoginPortal'; // Import mis à jour
+import { supabase } from './src/supabaseClient'; 
 
-// IMPORTANT : Importez votre configuration i18n ici pour l'activer
+// Configuration i18n
 import './src/i18n'; 
 import { I18nextProvider } from 'react-i18next';
 import i18n from './src/i18n';
@@ -21,14 +25,28 @@ import i18n from './src/i18n';
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>('home');
   const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+  const [eliteUser, setEliteUser] = useState<any>(null); // État pour l'utilisateur Local
   
-  // État pour le Mode Sombre
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Vérifie si l'utilisateur avait déjà choisi un mode
     return localStorage.getItem('theme') === 'dark';
   });
 
-  // Effet pour appliquer le mode sombre à la balise <html>
+  // --- GESTION DE LA SESSION (AUTH + LOCAL) ---
+  useEffect(() => {
+    // 1. Session Supabase (Admin)
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    // 2. Session Elite (Local Storage)
+    const storedUser = localStorage.getItem('fsti_user');
+    if (storedUser) setEliteUser(JSON.parse(storedUser));
+
+    return () => subscription.unsubscribe();
+  }, [view]); // On revérifie au changement de vue
+
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -47,7 +65,7 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [view]);
 
-  // Utility Component for non-implemented views
+  // Placeholder reste inchangé...
   const PlaceholderView = ({ title, icon }: { title: string, icon: string }) => (
     <div className="animate-fadeIn p-12 bg-white dark:bg-slate-900 rounded-[60px] border-4 border-slate-900 dark:border-blue-600 text-center space-y-6 max-w-2xl mx-auto shadow-2xl transition-colors">
       <span className="text-8xl block">{icon}</span>
@@ -92,8 +110,14 @@ const App: React.FC = () => {
       case 'post-product': return <PlaceholderView title="Market Entry" icon="📦" />;
       case 'report-incident': return <PlaceholderView title="Incident Node" icon="⚠️" />;
       case 'restaurant-register': return <PlaceholderView title="Kitchen Sync" icon="🍳" />;
-      case 'register': return <InscriptionView title="Register" icon="🍳" />;
-    
+      case 'register': return <InscriptionView title="Register" icon="✍️" />;
+      
+      // LOGIQUE DE PORTAIL CENTRALISÉE
+      case 'admin': 
+        if (session) return <AdminDashboardView />; // Si Admin Loggé
+        if (eliteUser) return <UserDashboard />;    // Si Talent/Coach Loggé
+        return <LoginPortal />;                     // Sinon, formulaire de login
+  
       default: return <HomeView setView={setView} />;
     }
   };
@@ -112,30 +136,28 @@ const App: React.FC = () => {
         <main className="max-w-7xl mx-auto px-4 lg:px-12 py-10 relative z-10">
           {renderContent()}
         </main>
+        
         <Footer />
         
-        {/* Floating Action Security Badge */}
-      {/* Floating Support Button */}
-<a 
-  href="https://wa.me/25761128298?text=Bonjour%20FSTI%20Hub%2C%20j'ai%20besoin%20d'assistance%20sur%20la%20plateforme." 
-  target="_blank" 
-  rel="noopener noreferrer"
-  className="fixed bottom-24 lg:bottom-10 right-4 lg:right-12 flex items-center gap-4 glass dark:bg-slate-900/80 px-6 py-4 rounded-[30px] shadow-2xl z-[60] border border-white/50 dark:border-slate-700 hover:scale-105 transition-all group active:scale-95"
->
-  {/* L'indicateur Pulse reste, pour montrer que le support est "Live" */}
-  <div className="relative">
-    <div className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse ring-4 ring-emerald-50 dark:ring-emerald-900/20"></div>
-    <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
-  </div>
+        <a 
+          href="https://wa.me/25761128298?text=Bonjour%20FSTI%20Hub%2C%20j'ai%20besoin%20d'assistance." 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="fixed bottom-24 lg:bottom-10 right-4 lg:right-12 flex items-center gap-4 glass dark:bg-slate-900/80 px-6 py-4 rounded-[30px] shadow-2xl z-[60] border border-white/50 dark:border-slate-700 hover:scale-105 transition-all group active:scale-95"
+        >
+          <div className="relative">
+            <div className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse ring-4 ring-emerald-50 dark:ring-emerald-900/20"></div>
+            <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
+          </div>
 
-  <div className="flex flex-col pr-2">
-    <span className="text-[8px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 leading-none text-left mb-1">Support 24/7</span>
-    <span className="text-[11px] font-black text-slate-900 dark:text-white tracking-tight italic flex items-center gap-2 uppercase">
-      Besoin d'aide ?
-      <span className="group-hover:translate-x-1 transition-transform">→</span>
-    </span>
-  </div>
-</a>
+          <div className="flex flex-col pr-2">
+            <span className="text-[8px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 leading-none text-left mb-1">Support 24/7</span>
+            <span className="text-[11px] font-black text-slate-900 dark:text-white tracking-tight italic flex items-center gap-2 uppercase">
+              Besoin d'aide ?
+              <span className="group-hover:translate-x-1 transition-transform">→</span>
+            </span>
+          </div>
+        </a>
       </div>
     </I18nextProvider>
   );
