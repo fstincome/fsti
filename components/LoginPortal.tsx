@@ -28,7 +28,7 @@ export const LoginPortal: React.FC = () => {
       });
 
       if (!authError && authData.session) {
-        window.location.href = '/admin-dashboard';
+        window.location.href = '/';
         return;
       }
 
@@ -42,7 +42,7 @@ export const LoginPortal: React.FC = () => {
 
       if (talent) {
         localStorage.setItem('fsti_user', JSON.stringify({ ...talent, role: 'participant' }));
-        window.location.href = '/user-dashboard';
+        window.location.href = '/';
         return;
       }
 
@@ -71,7 +71,7 @@ export const LoginPortal: React.FC = () => {
       if (recruiter) {
         localStorage.setItem('fsti_user', JSON.stringify({ ...recruiter, role: 'recruiter' }));
         // Redirection vers le dashboard recruteur
-        window.location.href = '/recruiter-dashboard'; 
+        window.location.href = '/'; 
         return;
       }
 
